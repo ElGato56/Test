@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Foraging Plugin - Data Logging Test</title>
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <script src="dist/index.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background-color: #333; color: white; font-family: sans-serif; }
+        #jspsych-target { width: 100%; height: 100vh; background-color: #ffffff; color: black; }
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div id="start-overlay"><h1>CLICK TO START DATA TEST</h1></div>
+<div id="jspsych-target"></div>
+</body>
+<script>
+    const overlay = document.getElementById('start-overlay');
+
+    overlay.addEventListener('click', () => {
+        overlay.style.display = 'none';
+        runExperiment();
+    });
+
+    function runExperiment() {
+        const jsPsych = initJsPsych({
+            display_element: 'jspsych-target',
+            on_finish: () => {
+                // --- DATA VERIFICATION ---
+                const data = jsPsych.data.get().last(1).values()[0];
+
+                console.group("📊 DATA VERIFICATION (FR-D)");
+                console.log("1. Condition (FR-D.1):", data.condition);
+                console.log("2. Start Time (FR-D.2):", data.patch_start_time);
+                console.log("3. End Time (FR-D.2):", data.patch_end_time);
+                console.log("4. Points (FR-D.7):", data.points);
+                console.log("5. Selections Array (FR-D.3):", data.selections);
+
+                if(data.selections.length > 0) {
+                    const sel = data.selections[0];
+                    console.log("   -> First Selection Details (FR-D.4 / FR-D.5):");
+                    console.log("      ID:", sel.id);
+                    console.log("      Time:", sel.selection_time);
+                    console.log("      Type:", sel.type);
+                    console.log("      Tag:", sel.tag);
+                }
+                console.groupEnd();
+
+                alert("Trial Finished! Open Console (F12) to verify data.");
+            }
+        });
+
+        const trial = {
+            type: jsPsychForagingPatch,
+            patch_size: [800, 600],
+            background: "lightblue",
+            travel_time: 500,
+            patch_leaving_animation: false,
+
+            images_path: "media/images/foraging-bees/",
+            audio_path: "media/audio/sounds/",
+
+            // --- TEST DATA PARAMS ---
+            condition: "TEST_CONDITION_A",
+            timeout: 10000,
+
+            elements: [
+                {
+                    image: "bee3.png",
+                    amount: 1,
+                    collectible: true,
+                    points: 50,
+                    width: 50, height: 50,
+
+                    // FR-D.5 Test Data
+                    type: "target",
+                    tag: "golden_bee",
+                    id: "bee_001"
+                }
+            ]
+        };
+
+        jsPsych.run([trial]);
+    }
+</script>
+</html>

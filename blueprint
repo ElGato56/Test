@@ -1,0 +1,7 @@
+/my-foraging-plugin
+  /src
+    index.ts               <-- The entry point
+    ForagingPatchPlugin.ts <-- The main v7 Plugin Class
+    types.ts               <-- Definitions of parameters
+  package.json             <-- Configuration file
+  tsconfig.json            <-- TypeScript configuration

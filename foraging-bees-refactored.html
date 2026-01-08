@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Foraging Bees (Original Refactored)</title>
+    
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-instructions@1.1.4"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.2.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.2.1"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-multi-choice@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-slider-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-call-function@1.1.3"></script>
+    
+    <script src="https://unpkg.com/popmotion@11.0.3/dist/popmotion.js"></script>
+
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <style>
+        body { margin: 0; padding: 0; background-color: #333; color: white; font-family: sans-serif; }
+        
+        /* Styles from legacy 'main.scss' / 'jspsych-foraging-patch.scss' */
+        .points-display { 
+            position: absolute; top: 20px; left: 15px; 
+            font-size: 24px; font-weight: bold; color: black; z-index: 100;
+        }
+        .point-indicator {
+            position: absolute; font-size: 24px; font-weight: bold; color: #0000AA; z-index: 101; pointer-events: none;
+        }
+        .next-click { 
+            position: absolute; top: 20px; right: 20px; 
+            cursor: pointer; font-size: 24px; font-weight: bold; color: black; z-index: 100;
+        }
+        #jspsych-target { background-color: #E1E1E1; height: 100vh; width: 100%; position: relative; }
+    </style>
+
+    <script src="dist/index.js"></script>
+</head>
+<body>
+    <div id="jspsych-target"></div>
+</body>
+<script>
+    // --- UTILITY MOCKS (Replacing missing imports) ---
+
+    // Mock JitteredGridCoordinates (Generates positions)
+    class JitteredGridCoordinates {
+        constructor(config) {
+            this.config = config;
+            this.index = 0;
+            // Generate a simple grid for testing
+            this.positions = [];
+            for(let i=0; i<config.columns; i++){
+                for(let j=0; j<config.rows; j++){
+                    this.positions.push({
+                        x: (i * config.hspacing) + config.hoffset + (Math.random() * config.hjitter),
+                        y: (j * config.vspacing) + config.voffset + (Math.random() * config.vjitter)
+                    });
+                }
+            }
+            // Shuffle
+            this.positions.sort(() => Math.random() - 0.5);
+        }
+        next() {
+            if (this.index >= this.positions.length) {
+                if (this.config.on_used_up === "loop") this.index = 0;
+                else return { x: 0, y: 0 }; // Fallback
+            }
+            return this.positions[this.index++];
+        }
+        reset() {
+            this.index = 0;
+            this.positions.sort(() => Math.random() - 0.5);
+        }
+    }
+
+    // Mock Scaler (Handles resize)
+    class Scaler {
+        constructor(element, targetW, targetH) {
+            console.log(`Scaler initialized for ${targetW}x${targetH}`);
+            // Simple CSS scaling logic could go here
+        }
+    }
+
+    // Mock SoundCheck (Replaces getSoundCheckNode)
+    function getSoundCheckNode() {
+        return {
+            type: jsPsychHtmlButtonResponse, // v7 Syntax
+            stimulus: "<p>Soundcheck: Klicke, um den Ton zu testen.</p>",
+            choices: ["Ich höre was", "Weiter"],
+            on_load: () => {
+                // Play a test sound if needed
+                const audio = new Audio("media/audio/sounds/click.mp3");
+                audio.play().catch(e => console.log("Audio autoplay blocked needs interaction"));
+            }
+        };
+    }
+
+    // --- MAIN EXPERIMENT CODE (Refactored) ---
+
+    // 1. Initialize jsPsych
+    const jsPsych = initJsPsych({
+        display_element: 'jspsych-target',
+        on_finish: function() {
+            // Check if JATOS exists
+            if (typeof jatos !== 'undefined') {
+                jatos.endStudy(jsPsych.data.get().json());
+            } else {
+                jsPsych.data.displayData();
+            }
+        }
+    });
+
+    // 2. Global Variables
+    let point_counter = 0;
+    let last_point_counter = 0;
+    let last_time = 0;
+    let last_eps = null;
+    let last_last_eps = null;
+    let start_time = null;
+    
+    // Config
+    let max_targets = 200; 
+    let max_targets_block2 = 200;
+
+    function update_point_counter(val) { point_counter += val; }
+    function readout_point_counter() { return point_counter; }
+
+    // 3. Grid Setup
+    var stim_positions = new JitteredGridCoordinates({
+        columns: 16, // Reduced slightly to fit standard screen
+        rows: 9,
+        hspacing: 100,
+        vspacing: 80,
+        hjitter: 20, vjitter: 20,
+        hoffset: 50, voffset: 50,
+        on_used_up: "nothing",
+        on_patch_done: "reset",
+    });
+
+    // 4. Asset Arrays (ADAPTED to use available files)
+    // We create arrays of 19 items as per original code, but fill them with the file we HAVE.
+    const createArray = (len, val) => Array(len).fill(val);
+    
+    const flowers_bright = createArray(19, "flower-bright-1.png");
+    const flowers_medium = createArray(19, "flower-bright-1.png"); // Using same img for now
+    const flowers_dark   = createArray(19, "flower-bright-1.png");
+    const flowers_white  = createArray(19, "bee3.png"); // Using Bee as "white flower" (Target)
+
+    const all_flowers = flowers_bright.concat(flowers_medium, flowers_dark);
+    const gras = createArray(13, "flower-bright-1.png"); // Distractors
+
+    // 5. Element Definitions
+    const distractors = {
+        type: "distractor",
+        image: "flower-bright-1.png", // Use single image property for new plugin
+        amount: 30, // Reduced from 75 for performance
+        // positions: stim_positions, // Handled by Plugin logic for now if we want grid
+        collectible: false,
+    };
+
+    const targets = {
+        type: "target",
+        amount: 10, // Reduced from 15
+        collectible: true,
+        image: "bee3.png",
+        trial_ends_when_all_collected: false, // Legacy code relies on "Next" button
+        width: 50, height: 50
+    };
+
+    // Target Variations
+    // Note: 'uncover_sounds' mapped to 'click_sounds' for new plugin
+    const targetplus_audiovisual = {
+        ...targets,
+        points: 3,
+        click_sounds: "click.mp3",
+        mouseover_image: "bee3.png", // Simplified
+    };
+    const targetzero_audiovisual = {
+        ...targets,
+        points: 1,
+        click_sounds: "click.mp3",
+        mouseover_image: "bee3.png",
+    };
+    const targetminus_audiovisual = {
+        ...targets,
+        points: -1,
+        click_sounds: "click.mp3",
+        mouseover_image: "bee3.png",
+    };
+
+    // (Visual/Auditory definitions simplified to use same base for testing)
+    const targetplus_visual = { ...targetplus_audiovisual };
+    const targetzero_visual = { ...targetzero_audiovisual };
+    const targetminus_visual = { ...targetminus_audiovisual };
+
+    // 6. Displays (Timeline Variables)
+    // IMPORTANT: The original code passed 'elements' as an array of objects.
+    // Our new plugin expects exactly that structure.
+    
+    let display_audiovisual = {
+        elements: [targetminus_audiovisual, targetzero_audiovisual, targetplus_audiovisual, distractors],
+    };
+    let display_visual = {
+        elements: [targetminus_visual, targetzero_visual, targetplus_visual, distractors],
+    };
+    
+    // 7. Timeline Construction
+    let timeline = [];
+    let repetitions = 2; // Reduced from 1000 to 2 for testing
+
+    // Break Screen
+    let expbreak = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: function () {
+            var current_points = readout_point_counter();
+            var current_time = performance.now();
+            var duration = current_time - last_time;
+            var current_eps = duration > 0 ? Math.ceil(((current_points - last_point_counter) / (duration / 1000)) * 60) : 0;
+            
+            last_point_counter = current_points;
+            last_time = current_time;
+            
+            return `
+                <font size='+2'>Supi! <br />
+                Du hast insgesamt ${current_points} von 400 Punkten erreicht! <br />
+                Deine Geschwindigkeit: ${current_eps} Punkte/Minute!<br /><br />
+                Weiter mit Tastendruck!
+            `;
+        },
+    };
+
+    // Condition Setup
+    let participants_condition = Math.random() > 0.5 ? 1 : 0;
+    
+    let trials_block1 = [];
+    for (let i = 0; i < repetitions; i++) {
+        trials_block1.push({ 
+            ...display_audiovisual, 
+            condition: participants_condition + 'audiovisual' 
+        });
+    }
+
+    const participant_zero = { ...display_visual, condition: '0-visual' };
+    const participant_one = { ...display_visual, condition: '1-audio' }; // Using visual for both to prevent crash
+    const participant = [participant_zero, participant_one];
+
+    let trials_block2 = [];
+    for (let i = 0; i < repetitions; i++) {
+        trials_block2.push(participant[participants_condition]);
+    }
+
+    // --- PUSHING TO TIMELINE ---
+
+    // Instructions
+    timeline.push({
+        type: jsPsychInstructions,
+        pages: [
+            "<b>Willkommen!</b><br/>Dies ist die refactoring Version.",
+            "Bitte schalte den Ton an."
+        ],
+        show_clickable_nav: true,
+        button_label_next: "Weiter"
+    });
+
+    timeline.push(getSoundCheckNode());
+
+    timeline.push({
+        type: jsPsychFullscreen,
+        message: "Vollbildmodus...",
+        button_label: 'Weiter', 
+        fullscreen_mode: true,
+    });
+
+    timeline.push({
+        type: jsPsychInstructions,
+        pages: [
+            "<b>Mission:</b> Sammle Bienen!",
+            "<b>Punkte:</b> Klicke auf Bienen (+3, +1, oder -1 Punkt).",
+            "<b>Ende:</b> Klicke 'Weiter' wenn die Wiese leer ist."
+        ],
+        show_clickable_nav: true,
+        button_label_next: "Los geht's"
+    });
+
+    // Reset Counters
+    timeline.push({
+        type: jsPsychCallFunction,
+        func: function () {
+            point_counter = 0;
+            last_point_counter = 0;
+            last_time = performance.now();
+            start_time = performance.now();
+        },
+    });
+
+    // Block 1
+    const patch_trial = {
+        type: jsPsychForagingPatch,
+        patch_size: [1200, 800],
+        background: "lightblue",
+        images_path: "media/images/foraging-bees/",
+        audio_path: "media/audio/sounds/",
+        
+        elements: jsPsych.timelineVariable("elements"),
+        condition: jsPsych.timelineVariable("condition"),
+        
+        travel_time: 1000,
+        patch_leaving_animation: true, // Simplified boolean for new plugin
+        
+        point_counter_update_function: update_point_counter,
+        point_counter_read_out_function: readout_point_counter,
+        
+        points_display_html: "<div id='points-display-html' class='points-display'>Punkte: <span id='jspsych-foraging-score-value'>0</span></div>",
+        next_patch_click_html: "<div id='next-patch-click-html' class='next-click'>Weiter</div>",
+        
+        on_load: () => {
+             new Scaler(document.getElementById("jspsych-foraging-container"), 1920, 1080);
+        }
+    };
+
+    timeline.push({
+        timeline: [patch_trial, expbreak],
+        timeline_variables: trials_block1
+    });
+
+    // Block 2
+    timeline.push({
+        timeline: [patch_trial, expbreak],
+        timeline_variables: trials_block2
+    });
+
+    // Debrief
+    timeline.push({
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: () => "Ende! Punkte: " + readout_point_counter() + "<br>Drücke eine Taste.",
+    });
+
+    // Run
+    jsPsych.run(timeline);
+
+</script>
+</html>

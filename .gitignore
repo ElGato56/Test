@@ -1,0 +1,4 @@
+node_modules
+.jspsych-builder
+packaged
+.idea

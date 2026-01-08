@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Foraging Plugin Test (Final)</title>
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
+
+    <script src="dist/index.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; background-color: #333; color: white; font-family: sans-serif; }
+
+        /* The container for the experiment */
+        #jspsych-target {
+            width: 100%;
+            height: 100vh;
+            background-color: #ffffff; /* White canvas for the patch */
+            color: black;
+            box-sizing: border-box;
+        }
+
+        /* START OVERLAY: Forces user click to unlock Audio */
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; cursor: pointer;
+        }
+        #start-overlay h1 { margin: 0 0 20px 0; font-size: 3em; }
+        #start-overlay p { font-size: 1.5em; color: #ccc; }
+    </style>
+</head>
+<body>
+<div id="start-overlay">
+    <h1>CLICK HERE TO START</h1>
+    <p>(Enables Audio & Fullscreen)</p>
+</div>
+
+<div id="debug-msg" style="padding: 10px; background: #222; position:absolute; top:0; left:0; width:100%; z-index:100;">
+    Status: Waiting for start...
+</div>
+
+<div id="jspsych-target"></div>
+</body>
+<script>
+    const debug = document.getElementById('debug-msg');
+    const overlay = document.getElementById('start-overlay');
+
+    // Global Score for Testing (FR-F.1 / FR-F.2)
+    let globalScore = 100;
+
+    // WAITING FOR CLICK (Fixes White Screen & Audio Issues)
+    overlay.addEventListener('click', () => {
+        overlay.style.display = 'none'; // Hide overlay
+        runExperiment(); // Start JSPsych
+    });
+
+    function runExperiment() {
+        if (typeof jsPsychForagingPatch === 'undefined') {
+            debug.innerHTML = "<span style='color:red;'>ERROR: Plugin not loaded. Check dist/index.js</span>";
+            return;
+        }
+
+        debug.innerHTML = "<span style='color:lightgreen;'>Plugin Loaded. Running...</span>";
+
+        const jsPsych = initJsPsych({
+            display_element: 'jspsych-target',
+            on_finish: () => {
+                debug.innerHTML = `Trial Finished. Final Global Score: ${globalScore}`;
+                alert(`Trial Over!\nFinal Score: ${globalScore}`);
+            }
+        });
+
+        const trial = {
+            type: jsPsychForagingPatch,
+            // --- Visuals ---
+            patch_size: [800, 600],
+            background: "lightblue",
+            travel_time: 1000,
+            patch_leaving_animation: true,
+
+            // --- Paths ---
+            images_path: "media/images/foraging-bees/",
+            audio_path: "media/audio/sounds/",
+
+            // --- Control (FR-C) ---
+            timeout: 20000,                       // Ends after 20s
+            trial_ends_when_all_collected: true,  // Ends when 3 targets found
+            next_patch_click_html: "<button style='padding:10px 20px; font-size:16px; background:#4CAF50; color:white; border:none; cursor:pointer;'>Next Patch >></button>",
+
+            // --- Scoring (FR-F) ---
+            point_counter_read_out_function: () => globalScore,
+            point_counter_update_function: (points) => {
+                globalScore += points;
+                console.log("Points added:", points, "| Total:", globalScore);
+            },
+            points_display_html: "Score: <span id='jspsych-foraging-score-value' style='color: blue; font-weight:bold; font-size: 1.5em;'>0</span>",
+
+            // --- Elements (FR-E) ---
+            elements: [
+                {
+                    // TARGET: Bee (Clickable, Sound, Points)
+                    image: "bee3.png",
+                    amount: 3,
+                    collectible: true,
+                    points: 10,
+                    click_sounds: "click.mp3",
+                    width: 50, height: 50
+                },
+                {
+                    // DISTRACTOR: Flower (Hover Effects)
+                    image: "flower-bright-1.png",
+                    collectible: false,
+                    amount: 1,
+                    x: 400, y: 300,
+                    width: 80, height: 80,
+
+                    // Interaction Tests
+                    mouseover_image: "bee3.png",   // Hover visual check
+                    mouseover_sounds: "beep.mp3"    // Hover audio check
+                }
+            ]
+        };
+
+        jsPsych.run([trial]);
+    }
+</script>
+</html>
