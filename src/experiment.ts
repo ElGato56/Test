@@ -2,7 +2,10 @@
  * @title Foraging Test
  * @description A test experiment for the ForagingPatchPlugin
  * @version 0.8
+ * @assets assets/images/foraging-test,assets/audio/sounds
  */
+
+
 
 import { initJsPsych } from "jspsych";
 import HtmlKeyboardResponsePlugin from "@jspsych/plugin-html-keyboard-response";
@@ -86,8 +89,8 @@ export function createTimeline(jatosStudyInput: any = null) {
     hoffset: 0, voffset: -550, on_used_up: "nothing", on_patch_done: "reset",
   });
 
-  const imgPath = "media/images/foraging-test/";
-  const audPath = "media/audio/sounds/";
+  const imgPath = "/assets/images/foraging-test/";
+  const audPath = "/assets/audio/sounds/";
 
   const targetConfig = {
     type: "target",

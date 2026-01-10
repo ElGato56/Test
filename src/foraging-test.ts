@@ -3,8 +3,7 @@
  * @description A test experiment for the ForagingPatchPlugin (v7 + Popmotion v11)
  * @version 0.5
  *
- * @imageDir images/foraging-test
- * @audioDir media/audio/sounds
+ * @assets assets/images/foraging-test,assets/audio/sounds
  */
 
 import { initJsPsych } from "jspsych";
@@ -223,8 +222,8 @@ export function createTimeline(jatosStudyInput: any = null) {
   // This will create the actual patches of the experiment:
   const foraging_trial = {
     type: ForagingPatchPlugin, // Tells jsPsych to use our foraging plugin
-    images_path: "media/images/foraging-test/", 
-    audio_path: "media/audio/sounds",
+    images_path: "/assets/images/foraging-test/", 
+    audio_path: "/assets/audio/sounds",
     patch_size: [1920, 1080],
     
     // Pass the functions for scoring
@@ -265,5 +264,10 @@ export function createTimeline(jatosStudyInput: any = null) {
     timeline_variables: full_design,
   });
 
-  return timeline;
+  return { jsPsych,timeline };
+}
+export async function run({ assetPaths, input = {} }: any = {}) {
+  const { jsPsych, timeline } = createTimeline(input);
+  await jsPsych.run(timeline);
+  return jsPsych;
 }
