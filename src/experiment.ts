@@ -78,9 +78,9 @@ function generateTrialElements() {
         vspacing: (height - 250) / stimRows,
         hjitter: 30,
         vjitter: 30,
-        hoffset: (width / stimCols) / 2, 
-        voffset: 250, // Startet bei 250px von oben -> Im Grünen Bereich
-        on_used_up: "nothing",
+        hoffset: (width / stimCols) / 2 + 600, 
+        voffset: 600, // Startet bei 600px von oben -> Im Grünen Bereich
+        on_used_up: "nothing", 
         on_patch_done: "reset",
     });
 
