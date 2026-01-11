@@ -7,6 +7,11 @@
  */
 
 import { initJsPsych } from "jspsych";
+// css imports
+import "jspsych/css/jspsych.css";
+import "../styles/main.scss";
+import "../styles/jspsych-foraging-patch.scss";
+// rest of imports
 import HtmlKeyboardResponsePlugin from "@jspsych/plugin-html-keyboard-response";
 import FullscreenPlugin from "@jspsych/plugin-fullscreen";
 import ForagingPatchPlugin from "./ForagingPatchPlugin"; 
