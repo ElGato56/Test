@@ -122,7 +122,7 @@ class ForagingPatchPlugin implements JsPsychPlugin<Info> {
     }
 
     // 2. Patch Configuration
-    const patchSize = trial.patch_size || [800, 600];
+    const patchSize = [window.innerWidth, window.innerHeight];
     const width = patchSize[0];
     const height = patchSize[1];
 
@@ -151,7 +151,7 @@ class ForagingPatchPlugin implements JsPsychPlugin<Info> {
 
     let totalCollectibles = 0;
     let collectedCount = 0;
-    const padding = 50;
+    const padding =  100  ;
     const getRandomPos = (max: number) => Math.floor(Math.random() * (max - (padding * 2))) + padding;
 
     if (rawConfigs && rawConfigs.length > 0) {

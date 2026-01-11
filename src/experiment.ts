@@ -1,11 +1,9 @@
 /**
  * @title Foraging Test
  * @description A test experiment for the ForagingPatchPlugin
- * @version 0.8
+ * @version 0.9 (Dynamic Fullscreen Fix)
  * @assets assets/images/foraging-test,assets/audio/sounds
  */
-
-
 
 import { initJsPsych } from "jspsych";
 import "jspsych/css/jspsych.css";
@@ -15,11 +13,9 @@ import HtmlKeyboardResponsePlugin from "@jspsych/plugin-html-keyboard-response";
 import FullscreenPlugin from "@jspsych/plugin-fullscreen";
 import ForagingPatchPlugin from "./ForagingPatchPlugin"; 
 import { JitteredGridCoordinates } from "./util/PositionGenerators";
-import { Scaler } from "./util/Scaler";
 import { linear } from "popmotion"; 
 
-// --- NO IMPORTS. WE USE STRINGS. ---
-
+// --- Hilfsfunktion: Elemente erstellen ---
 function expandConfigToElements(config: any, width: number, height: number) {
     const expandedElements: any[] = [];
     const generator = config.positions;
@@ -61,6 +57,108 @@ function expandConfigToElements(config: any, width: number, height: number) {
     return expandedElements;
 }
 
+// --- Hauptfunktion zur Generierung basierend auf aktueller Größe ---
+function generateTrialElements() {
+    // Hier holen wir uns die JETZIGE Fenstergröße (im Vollbild)
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    const hudSpace = 150; 
+    const itemSize = 150; 
+
+    // 1. Gitter für Blumen/Schmetterlinge (unten im Grünen)
+    const stimCols = Math.floor(width / itemSize);
+    // Wir ziehen oben mehr ab (250px), damit sie nicht im Himmel hängen
+    const stimRows = Math.floor((height - 250) / 130);
+
+    const stim_positions = new JitteredGridCoordinates({
+        columns: stimCols,
+        rows: stimRows,
+        hspacing: width / stimCols,
+        vspacing: (height - 250) / stimRows,
+        hjitter: 30,
+        vjitter: 30,
+        hoffset: (width / stimCols) / 2, 
+        voffset: 250, // Startet bei 250px von oben -> Im Grünen Bereich
+        on_used_up: "nothing",
+        on_patch_done: "reset",
+    });
+
+    // 2. Gitter für Wolken (oben im Blauen)
+    const cloudCols = Math.ceil(width / 300);
+    const cloudSpacing = width / cloudCols;
+
+    const cloud_positions = new JitteredGridCoordinates({
+        columns: cloudCols,
+        rows: 1, 
+        hspacing: cloudSpacing,
+        vspacing: 0,
+        hjitter: 50,
+        vjitter: 20, 
+        hoffset: cloudSpacing / 2, 
+        voffset: 50, // Ganz oben
+        on_used_up: "nothing",
+        on_patch_done: "reset",
+    });
+
+    // Konfigurationen
+    const targetConfig = {
+        type: "target",
+        amount: 20,
+        positions: stim_positions,
+        images: ["butterfly1.png", "butterfly2.png"], 
+        mouseover_images: ["flower1.png", "flower2.png"], 
+        collected_images: ["collected.png"],
+        click_sounds: ["beep.mp3"], 
+        mouseover_sounds: ["click.mp3"], 
+        collectible: true,
+        points: 10,
+    };
+
+    const distractorConfig = {
+        type: "distractor",
+        amount: 20,
+        positions: stim_positions,
+        images: ["flower1.png", "flower2.png"],
+        collectible: true, 
+        points: -20, 
+        animation: {
+            from: { rotate: -10, x: -5 },
+            to: { rotate: 10, x: 5 },
+            duration: 1000,
+            elapsed: Math.floor(Math.random() * 1000.0),
+            repeat: Infinity,
+            repeatType: "mirror"
+        },
+    };
+
+    const cloudConfig = {
+        type: "clouds",
+        amount: 3,
+        positions: cloud_positions,
+        images: ["cloud1.png", "cloud2.png", "cloud3.png", "cloud4.png"],
+        collectible: false,
+        points: 0,
+        animation: { 
+            from: { x: -200 }, 
+            to: { x: width + 200 },
+            duration: 40000,
+            repeat: Infinity,
+            ease: linear 
+        }, 
+    };
+
+    // Liste zusammenbauen
+    const elements = [
+        ...expandConfigToElements(cloudConfig, width, height),
+        ...expandConfigToElements(targetConfig, width, height),
+        ...expandConfigToElements(distractorConfig, width, height)
+    ];
+
+    return { elements, width, height };
+}
+
+
 export function createTimeline(jatosStudyInput: any = null) {
   const jsPsych = initJsPsych({
     on_finish: () => {}
@@ -82,99 +180,39 @@ export function createTimeline(jatosStudyInput: any = null) {
     fullscreen_mode: true,
   });
 
-  const stim_positions = new JitteredGridCoordinates({
-    columns: 12, rows: 7, hspacing: 150, vspacing: 130, hjitter: 10, vjitter: 10,
-    hoffset: 0, voffset: 80, on_used_up: "nothing", on_patch_done: "reset",
-  });
-
-  const cloud_positions = new JitteredGridCoordinates({
-    columns: 5, rows: 1, hspacing: 300, vspacing: 0, hjitter: 30, vjitter: 0,
-    hoffset: 0, voffset: -550, on_used_up: "nothing", on_patch_done: "reset",
-  });
-
   const imgPath = "/assets/images/foraging-test/";
   const audPath = "/assets/audio/sounds/";
-
-  const targetConfig = {
-    type: "target",
-    amount: 20,
-    positions: stim_positions,
-    images: ["butterfly1.png", "butterfly2.png"], 
-    mouseover_images: ["flower1.png", "flower2.png"], 
-    collected_images: ["collected.png"],
-    click_sounds: ["beep.mp3"], 
-    mouseover_sounds: ["click.mp3"], 
-    collectible: true,
-    points: 10,
-  };
-
-  const distractorConfig = {
-    type: "distractor",
-    amount: 20,
-    positions: stim_positions,
-    images: ["flower1.png", "flower2.png"],
-    collectible: true, 
-    points: -20, 
-    animation: {
-      from: { rotate: -10, x: -5 },
-      to: { rotate: 10, x: 5 },
-      duration: 1000,
-      elapsed: Math.floor(Math.random() * 1000.0),
-      repeat: Infinity,
-      repeatType: "mirror"
-    },
-  };
-
-  const cloudConfig = {
-    type: "clouds",
-    amount: 3,
-    positions: cloud_positions,
-    images: ["cloud1.png", "cloud2.png", "cloud3.png", "cloud4.png"],
-    collectible: false,
-    points: 0,
-    animation: { 
-        from: { x: -200 }, 
-        to: { x: 2120 },
-        duration: 40000,
-        repeat: Infinity,
-        ease: linear 
-    }, 
-  };
-
-  const patchWidth = 1920;
-  const patchHeight = 1080;
-
-  const elementsList = [
-      ...expandConfigToElements(targetConfig, patchWidth, patchHeight),
-      ...expandConfigToElements(distractorConfig, patchWidth, patchHeight),
-      ...expandConfigToElements(cloudConfig, patchWidth, patchHeight)
-  ];
 
   const factors = { timeout: [50000, 100000] };
   const full_design = jsPsych.randomization.factorial(factors, 2);
 
   const foraging_trial = {
     type: ForagingPatchPlugin,
-    // Pass the base paths here
     images_path: imgPath, 
     audio_path: audPath,
-    patch_size: [1920, 1080],
     point_counter_update_function: update_point_counter,
     point_counter_read_out_function: readout_point_counter,
     timeout: jsPsych.timelineVariable('timeout'),
-    elements: elementsList, 
-    background: ["background1.svg", "background2.svg", "background3.svg"], 
+    
+    // Hintergrundbilder (mit Pfad-Fix)
+    background: ["background1.svg", "background2.svg", "background3.svg"].map(bg => imgPath + bg), 
+    
     points_display_html: "<div style='font-size:24px; font-weight:bold; color:#99AAFF;'>Points: <span id='jspsych-foraging-score-value'>0</span></div>",
     next_patch_click_html: "<div id='next-patch-click-html' class='next-click' style='cursor:pointer;'><font size=+4 face='Comic Sans MS' color='#99AAFF'> Next </font></div>",
     travel_time: 4000,
     patch_leaving_animation: true,
     trial_ends_when_all_collected: true,
-    on_load: () => {
-       const container = document.getElementById("jspsych-foraging-container");
-       if(container) {
-         new Scaler(container, 1920, 1080, 0);
-       }
-    },
+
+    // --- WICHTIG: Hier überschreiben wir alles dynamisch beim Start ---
+    on_start: function(trial: any) {
+        // Jetzt ist der Browser im Vollbild, also berechnen wir jetzt erst die Positionen
+        const data = generateTrialElements();
+        
+        trial.patch_size = [data.width, data.height];
+        trial.elements = data.elements;
+        
+        console.log("Trial startet mit Größe:", data.width, "x", data.height);
+    }
   };
 
   timeline.push({

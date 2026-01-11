@@ -31,7 +31,7 @@ export class Scaler {
     const scale = Math.min(width / this._dimensions.width, height / this._dimensions.height);
     this._element.style.transform = `scale(${scale})`;
     // Optional: Center the container if needed
-    // this._element.style.transformOrigin = 'center center';
+    this._element.style.transformOrigin = 'center center';
   }
 
   private _resizeToWindowSize = () => {

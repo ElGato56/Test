@@ -25,23 +25,30 @@ export class PatchRenderer {
   public renderContainer(width: number, height: number, background: string | null): void {
     this.displayElement.innerHTML = "";
 
-    // Wrapper to hold HUD and Patch stacked vertically
+    // Wrapper füllt den ganzen Bildschirm
     const wrapper = document.createElement("div");
-    wrapper.style.display = "flex";
-    wrapper.style.flexDirection = "column";
-    wrapper.style.alignItems = "center";
     wrapper.style.position = "relative";
+    wrapper.style.width = "100%";
+    wrapper.style.height = "100%";
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "center";
+    wrapper.style.alignItems = "center";
 
-    // HUD Container Setup
+    // HUD Container Setup (Overlay)
+    // FIX: Absolut positionieren, damit kein grauer Balken entsteht
     this.hudContainer = document.createElement("div");
     this.hudContainer.id = "jspsych-foraging-hud";
-    this.hudContainer.style.width = `${width}px`; // Match patch width
-    this.hudContainer.style.marginBottom = "10px";
+    this.hudContainer.style.position = "absolute"; 
+    this.hudContainer.style.top = "20px"; // Abstand von oben
+    this.hudContainer.style.left = "0";
+    this.hudContainer.style.width = "100%"; 
+    this.hudContainer.style.padding = "0 40px"; // Abstand links/rechts
+    this.hudContainer.style.boxSizing = "border-box";
     this.hudContainer.style.display = "flex";
     this.hudContainer.style.justifyContent = "space-between";
     this.hudContainer.style.alignItems = "center";
-    wrapper.appendChild(this.hudContainer);
-
+    this.hudContainer.style.zIndex = "100"; // Sicherstellen, dass es über allem liegt
+    
     // Patch Container Setup
     this.container = document.createElement("div");
     this.container.id = "jspsych-foraging-container";
@@ -50,10 +57,7 @@ export class PatchRenderer {
     this.container.style.position = "relative";
     this.container.style.width = `${width}px`;
     this.container.style.height = `${height}px`;
-    this.container.style.border = "2px solid #ccc";
-
-    // Ensure initial state is visible
-    this.container.style.opacity = "1";
+    this.container.style.border = "none"; // Kein Rahmen
 
     // Background
     if (background) {
@@ -62,10 +66,13 @@ export class PatchRenderer {
       } else {
         this.container.style.backgroundImage = `url(${background})`;
         this.container.style.backgroundSize = "cover";
+        this.container.style.backgroundPosition = "center";
       }
     }
 
+    // Reihenfolge ist wichtig: Erst Container, dann HUD (aber durch z-index egal)
     wrapper.appendChild(this.container);
+    wrapper.appendChild(this.hudContainer);
     this.displayElement.appendChild(wrapper);
   }
 

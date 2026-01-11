@@ -3,3 +3,5 @@ declare module "*.svg";
 declare module "*.jpg";
 declare module "*.mp3";
 declare module "*.wav";
+declare module "*.css";
+declare module "*.sccs";
