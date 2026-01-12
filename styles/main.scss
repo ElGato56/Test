@@ -1,17 +1,74 @@
-body{
+/* --- FIX: Grundeinstellungen für echtes Vollbild ohne Ränder --- */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Verhindert Scrollbalken */
+  background-color: transparent; /* Transparent, damit Hintergrundbilder sichtbar sind */
+}
+
+/* Erzwingt, dass der jsPsych-Container den ganzen Bildschirm füllt */
+.jspsych-content-wrapper {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  display: flex !important; /* Stellt sicher, dass Wrapper zentrieren kann */
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* --- WICHTIGSTER FIX: Entfernt Ränder UND zentriert Text --- */
+.jspsych-content {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important; /* Füllt den Bildschirm */
+  margin: 0 !important;
+  padding: 0 !important;
+  
+  /* NEU: Damit Text wieder in der Mitte landet (Flexbox) */
+  display: flex !important;
+  flex-direction: column !important; /* Inhalte untereinander stapeln */
+  justify-content: center !important; /* Vertikal zentrieren */
+  align-items: center !important;     /* Horizontal zentrieren */
+}
+
+/* Styles für das Experiment-Element selbst */
+.jspsych-display-element {
+  background-color: transparent !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  color: #000000;
+}
+
+/* Stellt sicher, dass das SVG/Bild den Bereich komplett füllt */
+#jspsych-foraging-patch-container {
+  width: 100%;
+  height: 100%;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  /* Damit das Layern korrekt funktioniert */
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* --- Ab hier folgen die ursprünglichen Styles für Toasts & Co --- */
+
+body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-}
-
-.jspsych-display-element {
-  background-color: #808080;
-  //background-color: #000000; This was changed to black for the audio-foraging experiment
-  color: #000000;
-  //cursor: none; This also ...
+  font-family: sans-serif;
 }
 
 /** Variables **/
@@ -35,10 +92,6 @@ $green: #51cc50;
 $dark-green: #409c3f;
 
 $br: 2px;
-
-body {
-  font-family: sans-serif;
-}
 
 * {
   box-sizing: border-box;
@@ -191,7 +244,6 @@ body {
 
   .toast-close {
     position: absolute;
-    ;
     right: 0.75em;
     top: 50%;
     margin-top: -13.5px;

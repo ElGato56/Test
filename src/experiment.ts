@@ -79,7 +79,7 @@ function generateTrialElements() {
         hjitter: height * 0.03,
         vjitter: width * 0.03,
         hoffset: ((width / stimCols) * 5), 
-        voffset: height * 0.75,
+        voffset: height * 0.8,
         on_used_up: "nothing", 
         on_patch_done: "reset",
     });
