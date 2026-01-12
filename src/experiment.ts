@@ -64,22 +64,22 @@ function generateTrialElements() {
     const height = window.innerHeight;
 
     const hudSpace = 150; 
-    const itemSize = 150; 
+    const paddedItemSize = 150; 
 
     // 1. Gitter für Blumen/Schmetterlinge (unten im Grünen)
-    const stimCols = Math.floor(width / itemSize);
+    const stimCols = Math.floor(width / paddedItemSize);
     // Wir ziehen oben mehr ab (250px), damit sie nicht im Himmel hängen
-    const stimRows = Math.floor((height - 250) / 130);
+    const stimRows = Math.floor((height * 0.75) / paddedItemSize);
 
     const stim_positions = new JitteredGridCoordinates({
         columns: stimCols,
         rows: stimRows,
         hspacing: width / stimCols,
         vspacing: (height - 250) / stimRows,
-        hjitter: 30,
-        vjitter: 30,
-        hoffset: (width / stimCols) / 2 + 600, 
-        voffset: 600, // Startet bei 600px von oben -> Im Grünen Bereich
+        hjitter: height * 0.03,
+        vjitter: width * 0.03,
+        hoffset: ((width / stimCols) * 5), 
+        voffset: height * 0.75,
         on_used_up: "nothing", 
         on_patch_done: "reset",
     });
@@ -93,10 +93,10 @@ function generateTrialElements() {
         rows: 1, 
         hspacing: cloudSpacing,
         vspacing: 0,
-        hjitter: 50,
-        vjitter: 20, 
+        hjitter: width * 0.05,
+        vjitter: height * 0.02, 
         hoffset: cloudSpacing / 2, 
-        voffset: 50, // Ganz oben
+        voffset: height * 0.15, // Ganz oben
         on_used_up: "nothing",
         on_patch_done: "reset",
     });
