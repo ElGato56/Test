@@ -73,7 +73,7 @@ function generateTrialElements() {
 
     const stim_positions = new JitteredGridCoordinates({
         columns: stimCols,
-        rows: stimRows,
+        rows: stimRows - 1,
         hspacing: width / stimCols,
         vspacing: (height * 0.75) / stimRows,
         hjitter: height * 0.03,
@@ -220,6 +220,48 @@ export function createTimeline(jatosStudyInput: any = null) {
     timeline_variables: full_design,
   });
 
+  timeline.push({
+    type: HtmlKeyboardResponsePlugin,
+    stimulus: "Berechne Ergebnisse...", // Platzhalter, wird sofort überschrieben
+    choices: "NO_KEYS",
+    on_start: function(trial: any) {
+      // 1. Gesamtdauer abrufen (jsPsych speichert das automatisch)
+      const totalTimeMs = jsPsych.getTotalTime();
+      const minutes = Math.floor(totalTimeMs / 60000);
+      const seconds = Math.floor((totalTimeMs % 60000) / 1000);
+
+      // 2. Gesamtpunktzahl (Variable 'point_counter' aus Ihrem Scope nutzen)
+      const totalScore = point_counter;
+
+      // 3. Anzahl Klicks berechnen
+      // Wir holen alle Daten und summieren die Länge des Arrays 'selections'
+      // (Das Plugin speichert jeden Klick in 'selections')
+      const allData = jsPsych.data.get().values();
+      let totalClicks = 0;
+      
+      for (const t of allData) {
+        if (t.selections && Array.isArray(t.selections)) {
+          totalClicks += t.selections.length;
+        }
+      }
+
+      // 4. HTML für den Screen zusammenbauen
+      trial.stimulus = `
+        <div style="font-size: 26px; line-height: 1.6; font-family: Arial, sans-serif;">
+          <h2 style="color: #333;">Experiment beendet</h2>
+          <p>Vielen Dank für Ihre Teilnahme!</p>
+          
+          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; max-width: 500px; margin: 20px auto; border: 1px solid #ddd;">
+            <p><strong>Gesamtdauer:</strong> ${minutes} Min ${seconds} Sek</p>
+            <p><strong>Erreichte Punkte:</strong> <span style="color: green; font-weight: bold;">${totalScore}</span></p>
+            <p><strong>Anzahl Klicks:</strong> ${totalClicks}</p>
+          </div>
+          
+          <p style="font-size: 18px; color: #666;">Sie können das Fenster jetzt schließen.</p>
+        </div>
+      `;
+    }
+  });
   return { jsPsych, timeline };
 }
 
