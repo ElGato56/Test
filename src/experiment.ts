@@ -75,7 +75,7 @@ function generateTrialElements() {
         columns: stimCols,
         rows: stimRows,
         hspacing: width / stimCols,
-        vspacing: (height - 250) / stimRows,
+        vspacing: (height * 0.75) / stimRows,
         hjitter: height * 0.03,
         vjitter: width * 0.03,
         hoffset: ((width / stimCols) * 5), 
